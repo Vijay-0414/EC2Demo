@@ -45,9 +45,7 @@ jobs:
     - name: Run JAR File on EC2
       run: |
         ssh -i key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-          # Stop any existing app on port 8080
-          sudo fuser -k 8080/tcp || true
 
-          # Start new app in background
+          sudo fuser -k 8080/tcp || true
           nohup java -jar /home/${{ secrets.EC2_USER }}/app.jar > app.log 2>&1 &
         EOF
