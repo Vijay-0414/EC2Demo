@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
     @GetMapping
     public String demo(){
-        return "First CI-CD Project";
+        return "First CI-CD Project using GitHub Actions";
     }
     
 }
