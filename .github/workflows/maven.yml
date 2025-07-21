@@ -49,5 +49,5 @@ jobs:
           sudo fuser -k 8080/tcp || true
 
           # Start new app in background
-          nohup java -jar /home/${USER}/app.jar > app.log 2>&1 &
+          nohup java -jar /home/${{ secrets.EC2_USER }}/app.jar > app.log 2>&1 &
         EOF
