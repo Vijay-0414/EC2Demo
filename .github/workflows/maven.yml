@@ -27,7 +27,7 @@ jobs:
         distribution: 'temurin'
 
     - name: Build Java App (Maven)
-      run: mvn clean package -DskipTests
+      run: mvn clean package 
 
     - name: Find JAR File
       run: |
