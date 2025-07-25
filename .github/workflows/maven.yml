@@ -40,12 +40,52 @@ jobs:
 
     - name: Send JAR to EC2
       run: |
-        scp -i key.pem -o StrictHostKeyChecking=no $JAR_FILE ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/app.jar
+        scp -i key.pem -o StrictHostKeyChecking=no $JAR_FILE ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/Demo/app.jar
 
-    - name: Run JAR File on EC2
-      run: |
-        ssh -i key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
 
-          sudo fuser -k 8080/tcp || true
-          nohup java -jar /home/${{ secrets.EC2_USER }}/app.jar > app.log 2>&1 &
-        EOF
+    # RUN SERVICES
+    - name: SSH and deploy only updated services
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ubuntu
+        key: ${{ secrets.EC2_KEY }}
+        script: |
+          cd ~/Demo
+          mkdir -p Backup
+
+          echo "Listing JARs in Updated/"
+          ls -l Updated || echo "No JARs found"
+
+          for filepath in Updated/*.jar; do
+            [ -e "$filepath" ] || continue
+
+            filename=$(basename "$filepath")
+            servicename="${filename%.jar}"
+            fulljar="~/Demo/${filename}"
+
+            echo "Restarting service: $servicename"
+
+            pid=$(pgrep -f "$fulljar")
+            if [ -n "$pid" ]; then
+              echo "Stopping $servicename (PID: $pid)"
+              kill "$pid"
+              sleep 2
+            fi
+
+            if [ -f "$filename" ]; then
+              echo "Backing up old ${filename}"
+              mv "$filename" "Backup/${servicename}.jar"
+            fi
+
+            echo "Moving updated jar to microservices root"
+            mv "Updated/${filename}" "${filename}"
+
+            echo "Starting ${filename}"
+            nohup java -jar "${filename}" > "${servicename}.log" 2>&1 &
+
+            echo "$servicename restarted"
+          done
+
+          echo "🧹 Cleaning Updated folder"
+          rm -rf Updated/*
