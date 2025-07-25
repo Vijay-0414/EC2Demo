@@ -78,11 +78,11 @@ jobs:
               mv "$filename" "Backup/${servicename}.jar"
             fi
 
-            echo "Moving updated jar to microservices root"
+            echo "Moving updated jar to Demo"
             mv "Updated/${filename}" "${filename}"
 
             echo "Starting ${filename}"
-            nohup java -jar "${filename}" > "${servicename}.log" 2>&1 &
+            nohup java -jar "/home/ubuntu/Demo/${filename}" > "/home/ubuntu/Demo/${servicename}.log" 2>&1 &
 
             echo "$servicename restarted"
           done
