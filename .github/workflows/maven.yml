@@ -1,7 +1,9 @@
 name: CI/CD - Docker to EC2 via ECR
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - master
 
 jobs:
   build-and-deploy:
