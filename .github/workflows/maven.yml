@@ -41,23 +41,10 @@ jobs:
         docker build -t ${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG .
         docker push ${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG
 
-    - name: Deploy to EC2 via SSH
-      uses: appleboy/ssh-action@v1.0.0
+    - name: Deploy to ECS
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ubuntu
-        key: ${{ secrets.EC2_KEY }}
-        script: |
-          echo "Logging into ECR"
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
-            docker login --username AWS --password-stdin ${{ secrets.ECR_REPOSITORY }}
-
-          echo "Stopping and removing old container"
-          docker stop myapp || true
-          docker rm myapp || true
-
-          echo "Pulling new image"
-          docker pull ${{ secrets.ECR_REPOSITORY }}:latest
-
-          echo "Running new container"
-          docker run -d --name myapp -p 80:8080 ${{ secrets.ECR_REPOSITORY }}:latest
+        task-definition: ecs-task-definition.json
+        service: demo-service
+        cluster: ec2demo-cluster
+        wait-for-service-stability: true
