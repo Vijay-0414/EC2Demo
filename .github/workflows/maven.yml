@@ -68,7 +68,7 @@ jobs:
             docker stop ec2demo || true && docker rm ec2demo || true
       - name: Run Docker container
         run: |
-         IMAGE_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG"
-         echo "Running container from $IMAGE_URI"
-         docker run -d --name ec2demo -p 8080:8080 $IMAGE_URI
+           IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO }}:${{ env.IMAGE_TAG }}"
+           docker run -d -p 8080:8080 $IMAGE_URI
+
 
