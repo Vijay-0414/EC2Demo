@@ -1,79 +1,62 @@
-# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-name: CI/CD to ECS
+name: CI/CD - Docker to EC2 via ECR
 
 on:
-  push:
-    branches:
-      - master  # or main
-
-env:
-  AWS_REGION: us-west-2
-  ECR_REPO: ec2demo
-  ECS_CLUSTER: EC2DemoCluster
-  ECS_SERVICE: EC2DemoService
-  TASK_DEF_TEMPLATE: ecs-task-def-template.json
-  CONTAINER_NAME: ec2demo-container
+  workflow_dispatch:
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
+    env:
+      AWS_REGION: us-east-2
+      ECR_REPO: ec2demo       # Change if needed
+      IMAGE_TAG: latest
+      EC2_USER: ubuntu
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      PEM_KEY: ${{ secrets.EC2_KEY }}
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v3
-      with:
-        java-version: '17'
-        distribution: 'temurin'
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-    - name: Build JAR with Maven
-      run: mvn clean package
+      - name: Build JAR
+        run: mvn clean package -DskipTests
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-2
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
 
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        run: |
+          aws ecr get-login-password --region $AWS_REGION | \
+          docker login --username AWS --password-stdin "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com"
 
-    - name: Build Docker image
-      run: |
-        docker build -t $ECR_REPO:latest .
+      - name: Build Docker image
+        run: |
+          docker build -t $ECR_REPO:$IMAGE_TAG .
+          docker tag $ECR_REPO:$IMAGE_TAG ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG
 
-    - name: Tag and Push to ECR
-      run: |
-        IMAGE_URL="${{ steps.login-ecr.outputs.registry }}/$ECR_REPO:latest"
-        echo "IMAGE_URL=$IMAGE_URL" >> $GITHUB_ENV
-        docker tag $ECR_REPO:latest $IMAGE_URL
-        docker push $IMAGE_URL
+      - name: Push image to ECR
+        run: |
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG
 
-    - name: Replace image URI in task definition
-      run: |
-        sed "s|<IMAGE_URI>|${{ env.IMAGE_URL }}|g" $TASK_DEF_TEMPLATE > ecs-task-def.json
-
-    - name: Register new task definition
-      run: |
-        TASK_DEF_ARN=$(aws ecs register-task-definition \
-          --cli-input-json file://ecs-task-def.json \
-          --query 'taskDefinition.taskDefinitionArn' --output text)
-        echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_ENV
-
-    - name: Update ECS service
-      run: |
-        aws ecs update-service \
-          --cluster $ECS_CLUSTER \
-          --service $ECS_SERVICE \
-          --task-definition ${{ env.TASK_DEF_ARN }}
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ secrets.EC2_PEM_KEY }}
+          script: |
+            docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG
+            docker stop ec2demo || true && docker rm ec2demo || true
+            docker run -d --name ec2demo -p 8080:8080 ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG
