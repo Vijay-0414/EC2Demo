@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
     @GetMapping
     public String demo(){
-        return "Deploying using Docker Image through Elastic Container Registry.... Developed by VJ";
+        return "Deploying using Docker Image through Elastic Container Registry.... Developed by VIJAYAPERUMAL";
     }
     
 }
