@@ -6,86 +6,74 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Java CI with Maven
+name: CI/CD to ECS
 
 on:
   push:
-    branches: [ "master" ]
+    branches:
+      - master  # or main
+
+env:
+  AWS_REGION: us-west-2
+  ECR_REPO: ec2demo
+  ECS_CLUSTER: EC2DemoCluster
+  ECS_SERVICE: EC2DemoService
+  TASK_DEF_TEMPLATE: ecs-task-def-template.json
+  CONTAINER_NAME: ec2demo-container
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Pull Code from GitHub
+    - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Install Java 17
+    - name: Set up JDK 17
       uses: actions/setup-java@v3
       with:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Build Java App (Maven)
-      run: mvn clean package 
+    - name: Build JAR with Maven
+      run: mvn clean package
 
-    - name: Find JAR File
-      run: |
-        echo "JAR_FILE=$(find target -name '*.jar' | head -n 1)" >> $GITHUB_ENV
-
-    - name: Save EC2 PEM Key
-      run: |
-        echo "${{ secrets.EC2_KEY }}" > key.pem
-        chmod 400 key.pem
-
-    - name: Send JAR to EC2
-      run: |
-        scp -i key.pem -o StrictHostKeyChecking=no $JAR_FILE ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/Demo/Updated/app.jar
-
-
-    # RUN SERVICES
-    - name: SSH and deploy only updated services
-      uses: appleboy/ssh-action@master
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
       with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ubuntu
-        key: ${{ secrets.EC2_KEY }}
-        script: |
-          cd ~/Demo
-          mkdir -p Backup
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-2
 
-          echo "Listing JARs in Updated/"
-          ls -l Updated || echo "No JARs found"
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
 
-          for filepath in Updated/*.jar; do
-            [ -e "$filepath" ] || continue
+    - name: Build Docker image
+      run: |
+        docker build -t $ECR_REPO:latest .
 
-            filename=$(basename "$filepath")
-            servicename="${filename%.jar}"
-            fulljar="~/Demo/${filename}"
+    - name: Tag and Push to ECR
+      run: |
+        IMAGE_URL="${{ steps.login-ecr.outputs.registry }}/$ECR_REPO:latest"
+        echo "IMAGE_URL=$IMAGE_URL" >> $GITHUB_ENV
+        docker tag $ECR_REPO:latest $IMAGE_URL
+        docker push $IMAGE_URL
 
-            echo "Restarting service: $servicename"
+    - name: Replace image URI in task definition
+      run: |
+        sed "s|<IMAGE_URI>|${{ env.IMAGE_URL }}|g" $TASK_DEF_TEMPLATE > ecs-task-def.json
 
-            pid=$(pgrep -f "$filename")
-            if [ -n "$pid" ]; then
-              echo "Stopping $servicename (PID: $pid)"
-              kill "$pid"
-              sleep 2
-            fi
+    - name: Register new task definition
+      run: |
+        TASK_DEF_ARN=$(aws ecs register-task-definition \
+          --cli-input-json file://ecs-task-def.json \
+          --query 'taskDefinition.taskDefinitionArn' --output text)
+        echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_ENV
 
-            if [ -f "$filename" ]; then
-              echo "Backing up old ${filename}"
-              mv "$filename" "Backup/${servicename}.jar"
-            fi
-
-            echo "Moving updated jar to Demo"
-            mv "Updated/${filename}" "${filename}"
-
-            echo "Starting ${filename}"
-            nohup java -jar "${filename}" > "${servicename}.log" 2>&1 &
-
-            echo "$servicename restarted"
-          done
-
-          echo "🧹 Cleaning Updated folder"
-          rm -rf Updated/*
+    - name: Update ECS service
+      run: |
+        aws ecs update-service \
+          --cluster $ECS_CLUSTER \
+          --service $ECS_SERVICE \
+          --task-definition ${{ env.TASK_DEF_ARN }}
