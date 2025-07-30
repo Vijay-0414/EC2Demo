@@ -43,6 +43,11 @@ jobs:
           aws ecr get-login-password --region $AWS_REGION | \
           docker login --username AWS --password-stdin "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com"
 
+      - name: Print Debug Info
+        run: |
+          echo "ECR_REPO=$ECR_REPO"
+          echo "IMAGE_TAG=$IMAGE_TAG"
+
       - name: Build Docker image
         run: |
           docker build -t $ECR_REPO:$IMAGE_TAG .
@@ -61,4 +66,9 @@ jobs:
           script: |
             docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG
             docker stop ec2demo || true && docker rm ec2demo || true
-            docker run -d --name ec2demo -p 8080:8080 ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG
+      - name: Run Docker container
+        run: |
+         IMAGE_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG"
+         echo "Running container from $IMAGE_URI"
+         docker run -d --name ec2demo -p 8080:8080 $IMAGE_URI
+
