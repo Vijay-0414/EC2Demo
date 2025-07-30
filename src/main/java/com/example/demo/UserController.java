@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
     @GetMapping
     public String demo(){
-        return "Automatic Restart Check";
+        return "Deploying using Docker Image through Elastic Container Registry";
     }
     
 }
