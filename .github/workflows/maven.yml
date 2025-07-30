@@ -13,6 +13,15 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    - name: Set up JDK
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Build JAR with Maven
+      run: mvn clean package -DskipTests
+
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
       with:
