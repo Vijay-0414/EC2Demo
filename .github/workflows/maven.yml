@@ -53,14 +53,20 @@ jobs:
 
     - name: Create ECS cluster if not exists
       run: |
-        if ! aws ecs describe-clusters --clusters $CLUSTER_NAME | grep $CLUSTER_NAME; then
+        CLUSTER_EXISTS=$(aws ecs describe-clusters --clusters $CLUSTER_NAME \
+        --query "clusters[0].status" --output text 2>/dev/null || echo "MISSING")
+
+        if [ "$CLUSTER_EXISTS" = "MISSING" ] || [ "$CLUSTER_EXISTS" = "INACTIVE" ]; then
+          echo "Cluster not found. Creating ECS cluster..."
           aws ecs create-cluster --cluster-name $CLUSTER_NAME
+        else
+          echo "ECS cluster '$CLUSTER_NAME' already exists."
         fi
 
     - name: Prepare updated task definition
       id: task-def
       run: |
-        IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}"
+        IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}"
         sed "s|REPLACE_ME|$IMAGE_URI|g" ecs-task-def.json > final-task-def.json
 
     - name: Register new task definition
