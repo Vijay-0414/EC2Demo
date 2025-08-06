@@ -41,10 +41,4 @@ jobs:
         docker build -t ${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG .
         docker push ${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG
 
-    - name: Deploy to ECS
-      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-      with:
-        task-definition: ecs-task-definition.json
-        service: demo-service
-        cluster: ec2demo-cluster
-        wait-for-service-stability: true
+
