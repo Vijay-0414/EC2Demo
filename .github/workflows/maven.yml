@@ -66,7 +66,7 @@ jobs:
     - name: Create ECS cluster if not exists
       run: |
         CLUSTER_CHECK=$(aws ecs describe-clusters --clusters $CLUSTER_NAME \
-        --query "clusters[0].status" --output text || echo "MISSING")
+          --query "clusters[0].status" --output text || echo "MISSING")
 
         if [ "$CLUSTER_CHECK" = "MISSING" ] || [ "$CLUSTER_CHECK" = "None" ]; then
           echo "Cluster not found. Creating ECS cluster..."
