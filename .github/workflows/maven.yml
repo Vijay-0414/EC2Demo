@@ -22,6 +22,18 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    - name: Set short git commit SHA
+      id: vars
+      run: |
+        calculatedSha=$(git rev-parse --short ${{ github.sha }})
+        echo "COMMIT_SHORT_SHA=$calculatedSha" >> $GITHUB_ENV
+
+    - name: Github Workspace
+      run: echo ${{ github.workspace }}
+
+    - name: Confirm git commit SHA output
+      run: echo ${{ env.COMMIT_SHORT_SHA }}
+        
     - name: Set up JDK
       uses: actions/setup-java@v3
       with:
@@ -47,8 +59,8 @@ jobs:
     - name: Build, tag, and push Docker image to ECR
       run: |
         #IMAGE_TAG=latest123
-        docker build -t ${{ secrets.ECR_REPOSITORY }}:${{github.sha}} .
-        docker push ${{ secrets.ECR_REPOSITORY }}:${{github.sha}}
+        docker build -t ${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }} .
+        docker push ${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}
 
 
     - name: Create ECS cluster if not exists
@@ -66,7 +78,7 @@ jobs:
     - name: Prepare updated task definition
       id: task-def
       run: |
-        IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}"
+        IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}"
         sed "s|REPLACE_ME|$IMAGE_URI|g" ecs-task-def.json > final-task-def.json
 
     - name: Register new task definition
