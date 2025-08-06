@@ -91,28 +91,28 @@ jobs:
 
     - name: Create or update ECS service
       run: |
-       SERVICE_EXISTS=$(aws ecs describe-services \
-         --cluster demoec2 \
-         --services demo-service \
-         --query "services[0].serviceName" \
-         --output text 2>/dev/null || echo "None")
+        SERVICE_EXISTS=$(aws ecs describe-services \
+          --cluster $CLUSTER_NAME \
+          --services $SERVICE_NAME \
+          --query "services[0].status" \
+          --output text || echo "MISSING")
 
-       if [ "$SERVICE_EXISTS" = "None" ]; then
-         echo "Creating ECS service..."
-         aws ecs create-service \
-        --cluster demoec2 \
-        --service-name demo-service \
-        --task-definition demo-task \
-        --launch-type EC2 \
-        --desired-count 1 \
-        --deployment-controller type=ECS \
-        --network-configuration "awsvpcConfiguration={subnets=[subnet-xxx],securityGroups=[sg-xxx],assignPublicIp=ENABLED}"
-       else
-        echo "Updating ECS service..."
-        aws ecs update-service \
-        --cluster demoec2 \
-        --service demo-service \
-        --task-definition demo-task
-       fi
+        if [ "$SERVICE_EXISTS" = "MISSING" ] || [ "$SERVICE_EXISTS" = "INACTIVE" ]; then
+          echo "Service does not exist. Creating..."
+          aws ecs create-service \
+            --cluster $CLUSTER_NAME \
+            --service-name $SERVICE_NAME \
+            --task-definition $TASK_DEFINITION \
+            --launch-type EC2 \
+            --desired-count 1 \
+            --network-configuration "awsvpcConfiguration={subnets=[subnet-03e20a502afaaa8eb],securityGroups=[sg-02950e30226107917],assignPublicIp=ENABLED}"
+        else
+          echo "Service exists. Updating..."
+          aws ecs update-service \
+            --cluster $CLUSTER_NAME \
+            --service $SERVICE_NAME \
+            --task-definition $TASK_DEFINITION \
+            --desired-count 1
+        fi
 
 
