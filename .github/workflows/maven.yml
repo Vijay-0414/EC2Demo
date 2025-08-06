@@ -102,7 +102,7 @@ jobs:
           aws ecs create-service \
             --cluster $CLUSTER_NAME \
             --service-name $SERVICE_NAME \
-            --task-definition $TASK_DEFINITION \
+            --task-definition $TASK_DEF_FAMILY \
             --launch-type EC2 \
             --desired-count 1 \
             --network-configuration "awsvpcConfiguration={subnets=[subnet-03e20a502afaaa8eb],securityGroups=[sg-02950e30226107917],assignPublicIp=ENABLED}"
@@ -111,7 +111,7 @@ jobs:
           aws ecs update-service \
             --cluster $CLUSTER_NAME \
             --service $SERVICE_NAME \
-            --task-definition $TASK_DEFINITION \
+            --task-definition $TASK_DEF_FAMILY \
             --desired-count 1
         fi
 
