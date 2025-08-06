@@ -102,7 +102,7 @@ jobs:
          aws ecs create-service \
         --cluster demoec2 \
         --service-name demo-service \
-        --task-definition my-task-def-name \
+        --task-definition demo-task \
         --launch-type EC2 \
         --desired-count 1 \
         --deployment-controller type=ECS \
@@ -112,7 +112,7 @@ jobs:
         aws ecs update-service \
         --cluster demoec2 \
         --service demo-service \
-        --task-definition my-task-def-name
+        --task-definition demo-task
        fi
 
 
