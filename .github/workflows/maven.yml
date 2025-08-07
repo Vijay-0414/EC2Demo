@@ -5,14 +5,6 @@ on:
     branches:
       - master  
 
-env:
-  CLUSTER_NAME: demoec2
-  SERVICE_NAME: demo-service
-  TASK_DEF_FAMILY: demo-task
-  CONTAINER_NAME: demo-container
-  #ECR_REPO: your-ecr-repo-name
-  IMAGE_TAG: ${{github.sha}}
-
   
 jobs:
   deploy:
@@ -62,55 +54,4 @@ jobs:
         docker build -t ${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }} .
         docker push ${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}
 
-
-    - name: Create ECS cluster if not exists
-      run: |
-        CLUSTER_EXISTS=$(aws ecs describe-clusters --clusters $CLUSTER_NAME \
-        --query "clusters[0].status" --output text 2>/dev/null || echo "MISSING")
-
-        if [ "$CLUSTER_EXISTS" = "MISSING" ] || [ "$CLUSTER_EXISTS" = "INACTIVE" ]; then
-          echo "$CLUSTER_NAME Cluster not found. Creating $CLUSTER_NAME ECS cluster..."
-          aws ecs create-cluster --cluster-name $CLUSTER_NAME
-        else
-          echo "ECS cluster '$CLUSTER_NAME' already exists."
-        fi
-
-    - name: Prepare updated task definition
-      id: task-def
-      run: |
-        IMAGE_URI="${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}"
-        sed "s|REPLACE_ME|$IMAGE_URI|g" ecs-task-def.json > final-task-def.json
-
-    - name: Register new task definition
-      run: |
-        TASK_DEF_ARN=$(aws ecs register-task-definition \
-          --cli-input-json file://final-task-def.json \
-          --query 'taskDefinition.taskDefinitionArn' \
-          --output text)
-        echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_ENV
-
-    - name: Create or update ECS service
-      run: |
-        SERVICE_EXISTS=$(aws ecs describe-services \
-          --cluster $CLUSTER_NAME \
-          --services $SERVICE_NAME \
-          --query "services[0].status" \
-          --output text || echo "MISSING")
-
-        if [ "$SERVICE_EXISTS" == "ACTIVE" ]; then
-          echo "Updating ECS service..."
-          aws ecs update-service \
-            --cluster $CLUSTER_NAME \
-            --service $SERVICE_NAME \
-            --task-definition $TASK_DEF_ARN \
-            --force-new-deployment
-        else
-          echo "Creating ECS service..."
-          aws ecs create-service \
-            --cluster $CLUSTER_NAME \
-            --service-name $SERVICE_NAME \
-            --task-definition $TASK_DEF_ARN \
-            --launch-type EC2 \
-            --desired-count 1
-        fi
 
