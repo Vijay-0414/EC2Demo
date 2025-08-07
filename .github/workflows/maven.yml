@@ -95,7 +95,7 @@ jobs:
           --cluster $CLUSTER_NAME \
           --services $SERVICE_NAME \
           --query "services[0].status" \
-          --output text || echo "MISSING")
+          --output text 2>/dev/null || echo "MISSING")
 
         if [ "$SERVICE_EXISTS" = "MISSING" ] || [ "$SERVICE_EXISTS" = "INACTIVE" ]; then
           echo "Service does not exist. Creating..."
