@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
     @GetMapping
     public String demo(){
-        return "ECS Updating...";
+        return "Finally Hosting in ECS with EC2...";
     }
     
 }
