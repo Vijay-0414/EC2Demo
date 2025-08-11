@@ -56,7 +56,7 @@ jobs:
     - name: Build, tag, and push Docker image to ECR
       run: |
         
-        docker build -t ${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}:$IMAGE_TAG .
+        docker build -t ${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }} .
         docker push ${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}:$IMAGE_TAG
 
     - name: Create ECS cluster if not exists
