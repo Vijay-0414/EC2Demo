@@ -54,10 +54,8 @@ jobs:
 
     - name: Build, tag, and push Docker image to ECR
       run: |
-        IMAGE_URI="${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}"
         docker build -t ${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }} .
         docker push ${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}
-        echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
 
     - name: Create ECS cluster if not exists
       run: |
