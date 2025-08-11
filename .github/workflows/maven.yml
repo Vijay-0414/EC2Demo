@@ -124,6 +124,7 @@ jobs:
             --cluster $CLUSTER_NAME \
             --service $SERVICE_NAME \
             --task-definition $TASK_DEF_ARN
+            --force-new-deployment
         else
           echo "Creating ECS service..."
           aws ecs create-service \
