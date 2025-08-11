@@ -112,21 +112,25 @@ jobs:
 
     - name: Create or update ECS service
       run: |
-        STATUS=$(aws ecs describe-services --cluster $CLUSTER_NAME --services $SERVICE_NAME \
-          --query "services[0].status" --output text 2>/dev/null || echo "MISSING")
-        if [ "$STATUS" = "MISSING" ] || [ "$STATUS" = "INACTIVE" ]; then
+        STATUS=$(aws ecs describe-services \
+          --cluster $CLUSTER_NAME \
+          --services $SERVICE_NAME \
+          --query "services[0].status" \
+          --output text 2>/dev/null || echo "MISSING")
+
+        if [ "$STATUS" == "ACTIVE" ]; then
+          echo "Updating ECS service..."
+          aws ecs update-service \
+            --cluster $CLUSTER_NAME \
+            --service $SERVICE_NAME \
+            --task-definition $TASK_DEF_ARN
+        else
           echo "Creating ECS service..."
           aws ecs create-service \
             --cluster $CLUSTER_NAME \
             --service-name $SERVICE_NAME \
             --task-definition $TASK_DEF_ARN \
             --desired-count 1 \
-            --launch-type EC2
-        else
-          echo "Updating ECS service..."
-          aws ecs update-service \
-            --cluster $CLUSTER_NAME \
-            --service $SERVICE_NAME \
-            --task-definition $TASK_DEF_ARN \
-            --desired-count 1
+            --launch-type EC2 \
+            --deployment-configuration maximumPercent=200,minimumHealthyPercent=50
         fi
