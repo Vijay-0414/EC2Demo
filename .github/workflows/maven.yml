@@ -10,7 +10,7 @@ env:
   SERVICE_NAME: demo-service
   TASK_DEF_FAMILY: demo-task
   CONTAINER_NAME: demo-container
-  IMAGE_TAG: latest
+  
   
 jobs:
   deploy:
@@ -55,6 +55,7 @@ jobs:
 
     - name: Build, tag, and push Docker image to ECR
       run: |
+        IMAGE_TAG: latest
         docker build -t ${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}:${{IMAGE_TAG}} .
         docker push ${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}:${{IMAGE_TAG}}
 
