@@ -103,7 +103,7 @@ jobs:
     - name: Update task definition with image
       run: |
         IMAGE_URI="${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}"
-        jq --arg REPLACE_ME "$IMAGE_URI" \
+        jq --arg IMAGE_URI "$IMAGE_URI" \
              '.containerDefinitions[0].image = $IMAGE_URI' ecs-task-def.json > new-task-def.json 
 
     - name: Register ECS task definition
