@@ -69,6 +69,29 @@ jobs:
           echo "ECS cluster '$CLUSTER_NAME' already exists."
         fi
 
+    - name: Launch EC2 instances
+      run: |
+        INSTANCE_COUNT=$(aws ecs list-container-instances --cluster $CLUSTER_NAME \
+          --query "length(containerInstanceArns)" --output text)
+
+        if [ "$INSTANCE_COUNT" -eq 0 ]; then
+          echo "No EC2 instances found. Launching one..."
+          AMI_ID=$(aws ssm get-parameters --names /aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id \
+            --query "Parameters[0].Value" --output text)
+
+          aws ec2 run-instances \
+            --image-id $AMI_ID \
+            --count 1 \
+            --instance-type t3.micro \
+            --iam-instance-profile Name=ecsInstanceRole \
+            --key-name my-key \
+            --security-group-ids sg-0abb4251606ddb157 \
+            --subnet-id subnet-02cad20bf83afac11 \
+            --user-data "#!/bin/bash echo ECS_CLUSTER=$CLUSTER_NAME >> /etc/ecs/ecs.config"
+         else
+            echo "ECS container instances already running."
+          fi
+
     - name: Prepare updated task definition
       id: task-def
       run: |
@@ -82,3 +105,25 @@ jobs:
           --query 'taskDefinition.taskDefinitionArn' \
           --output text)
         echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_ENV
+
+    - name: Create or update ECS service
+      run: |
+        SERVICE_STATUS=$(aws ecs describe-services --cluster $CLUSTER_NAME --services $SERVICE_NAME \
+          --query "services[0].status" --output text 2>/dev/null || echo "MISSING")
+
+        if [ "$SERVICE_STATUS" = "MISSING" ] || [ "$SERVICE_STATUS" = "None" ]; then
+          echo "Service does not exist. Creating..."
+          aws ecs create-service \
+            --cluster $CLUSTER_NAME \
+            --service-name $SERVICE_NAME \
+            --task-definition my-task-family \
+            --desired-count 1 \
+            --launch-type EC2
+        else
+          echo "Updating service..."
+          aws ecs update-service \
+            --cluster $CLUSTER_NAME \
+            --service $SERVICE_NAME \
+            --task-definition my-task-family \
+            --desired-count 1
+        fi
