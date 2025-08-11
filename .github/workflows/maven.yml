@@ -5,6 +5,11 @@ on:
     branches:
       - master  
 
+env:
+  CLUSTER_NAME: demo-cluster
+  SERVICE_NAME: demo-service
+  TASK_DEF_FAMILY: demo-task
+  CONTAINER_NAME: demo-container
   
 jobs:
   deploy:
@@ -52,4 +57,14 @@ jobs:
         docker build -t ${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }} .
         docker push ${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}
 
+    - name: Create ECS cluster if not exists
+      run: |
+        CLUSTER_CHECK=$(aws ecs describe-clusters --clusters $CLUSTER_NAME \
+        --query "clusters[0].status" --output text || echo "MISSING")
 
+        if [ "$CLUSTER_CHECK" = "MISSING" ] || [ "$CLUSTER_CHECK" = "None" ]; then
+          echo "Cluster not found. Creating ECS cluster..."
+          aws ecs create-cluster --cluster-name $CLUSTER_NAME
+        else
+          echo "ECS cluster '$CLUSTER_NAME' already exists."
+        fi
