@@ -57,7 +57,7 @@ jobs:
       run: |
         
         docker build -t ${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }} .
-        docker push ${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}:$IMAGE_TAG
+        docker push ${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}
 
     - name: Create ECS cluster if not exists
       run: |
@@ -96,7 +96,7 @@ jobs:
 
     - name: Update task definition with image
       run: |
-        IMAGE_URI="${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}:$IMAGE_TAG"
+        IMAGE_URI="${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}"
         sed -i "s|REPLACE_ME|$IMAGE_URI:latest|g" ecs-task-def.json > final-task-def.json
 
     - name: Register ECS task definition
