@@ -59,11 +59,11 @@ jobs:
 
     - name: Create ECS cluster if not exists
       run: |
-        CLUSTER_CHECK=$(aws ecs describe-clusters --clusters $CLUSTER_NAME \
-        --query "clusters[0].status" --output text || echo "MISSING")
+        CLUSTER_EXISTS=$(aws ecs describe-clusters --clusters $CLUSTER_NAME \
+        --query "clusters[0].status" --output text 2>/dev/null || echo "MISSING")
 
-        if [ "$CLUSTER_CHECK" = "MISSING" ] || [ "$CLUSTER_CHECK" = "None" ]; then
-          echo "Cluster not found. Creating ECS cluster..."
+        if [ "$CLUSTER_EXISTS" = "MISSING" ] || [ "$CLUSTER_EXISTS" = "INACTIVE" ]; then
+          echo "$CLUSTER_NAME Cluster not found. Creating $CLUSTER_NAME ECS cluster..."
           aws ecs create-cluster --cluster-name $CLUSTER_NAME
         else
           echo "ECS cluster '$CLUSTER_NAME' already exists."
