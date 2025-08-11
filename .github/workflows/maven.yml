@@ -10,6 +10,7 @@ env:
   SERVICE_NAME: demo-service
   TASK_DEF_FAMILY: demo-task
   CONTAINER_NAME: demo-container
+  IMAGE_TAG: latest
   
 jobs:
   deploy:
@@ -54,8 +55,8 @@ jobs:
 
     - name: Build, tag, and push Docker image to ECR
       run: |
-        docker build -t ${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }} .
-        docker push ${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}
+        docker build -t ${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}:${{IMAGE_TAG}} .
+        docker push ${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}:${{IMAGE_TAG}}
 
     - name: Create ECS cluster if not exists
       run: |
@@ -94,8 +95,8 @@ jobs:
 
     - name: Update task definition with image
       run: |
-        IMAGE_URI="${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}"
-        jq --arg REPLACE_ME "$IMAGE_URI" '.containerDefinitions[0].image=$IMAGE_URI' ecs-task-def.json > final-task-def.json
+        IMAGE_URI="${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}:${{IMAGE_TAG}}"
+        sed -i "s|REPLACE_ME|$IMAGE_URI:latest|g" ecs-task-def.json > final-task-def.json
 
     - name: Register ECS task definition
       run: |
