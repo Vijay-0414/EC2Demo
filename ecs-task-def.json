@@ -7,7 +7,7 @@
   "containerDefinitions": [
     {
       "name": "demo-container",
-      "image": "IMAGE_URI", 
+      "image": "REPLACE_ME", 
       "portMappings": [
         {
           "containerPort": 8080,
