@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
     @GetMapping
     public String demo(){
-        return "Hello, VIJAYAPERUMAL L...";
+        return "Deploy an Application using ECS with EC2 Instances....";
     }
     
 }
