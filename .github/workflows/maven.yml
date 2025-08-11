@@ -68,3 +68,17 @@ jobs:
         else
           echo "ECS cluster '$CLUSTER_NAME' already exists."
         fi
+
+    - name: Prepare updated task definition
+      id: task-def
+      run: |
+        IMAGE_URI="${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}"
+        sed "s|REPLACE_ME|$IMAGE_URI|g" ecs-task-def.json > final-task-def.json
+
+    - name: Register new task definition
+      run: |
+        TASK_DEF_ARN=$(aws ecs register-task-definition \
+          --cli-input-json file://final-task-def.json \
+          --query 'taskDefinition.taskDefinitionArn' \
+          --output text)
+        echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_ENV
