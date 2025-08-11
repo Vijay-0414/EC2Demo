@@ -96,7 +96,8 @@ jobs:
 
     - name: Update task definition with image
       run: |
-        sed "s|REPLACE_ME|${{ env.IMAGE_URI }}|g" ecs-task-def.json > final-task-def.json
+        IMAGE_URI="${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}"
+        sed "s|REPLACE_ME|$IMAGE_URI|g" ecs-task-def.json > final-task-def.json
 
     - name: Register ECS task definition
       run: |
