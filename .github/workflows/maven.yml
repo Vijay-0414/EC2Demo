@@ -97,7 +97,7 @@ jobs:
     - name: Download Existing Task Definition
       id: task-def
       run: |
-        aws ecs describe-task-definition --task-definition $ECS_TASK_FAMILY \
+        aws ecs describe-task-definition --task-definition $TASK_DEF_FAMILY \
           --query taskDefinition > ecs-task-def.json
 
     - name: Update task definition with image
