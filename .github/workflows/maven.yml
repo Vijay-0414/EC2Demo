@@ -95,6 +95,21 @@ jobs:
           echo "EC2 container instances already running."
         fi
 
+    - name: Stop existing ECS tasks
+      run: |
+        TASK_ARN=$(aws ecs list-tasks \
+          --cluster $CLUSTER_NAME \
+          --service-name $SERVICE_NAME \
+          --query 'taskArns[0]' \
+          --output text)
+
+        if [ "$TASK_ARN" != "None" ]; then
+          echo "Stopping task: $TASK_ARN"
+          aws ecs stop-task --cluster $CLUSTER_NAME --task $TASK_ARN
+        else
+          echo "No running tasks found."
+        fi
+        
     - name: Update task definition with image
       run: |
         UPDATED_URI="${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}"
@@ -112,20 +127,6 @@ jobs:
         fi
         echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_ENV
 
-    - name: Stop existing ECS tasks
-      run: |
-        TASK_ARN=$(aws ecs list-tasks \
-          --cluster $CLUSTER_NAME \
-          --service-name $SERVICE_NAME \
-          --query 'taskArns[0]' \
-          --output text)
-
-        if [ "$TASK_ARN" != "None" ]; then
-          echo "Stopping task: $TASK_ARN"
-          aws ecs stop-task --cluster $CLUSTER_NAME --task $TASK_ARN
-        else
-          echo "No running tasks found."
-        fi
         
     - name: Deregister old task definitions
       run: |
