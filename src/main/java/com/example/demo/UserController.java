@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
     @GetMapping
     public String demo(){
-        return "Finally Updated Task Successfully...";
+        return "Version 2.0";
     }
     
 }
