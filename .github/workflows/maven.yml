@@ -122,7 +122,7 @@ jobs:
 
         if [ "$TASK_ARN" != "None" ]; then
           echo "Stopping task: $TASK_ARN"
-          aws ecs stop-task --cluster $CLUSTER_NAME --task $TASK_DEF_ARN
+          aws ecs stop-task --cluster $CLUSTER_NAME --task $TASK_ARN
         else
           echo "No running tasks found."
         fi
