@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
     @GetMapping
     public String demo(){
-        return "to check whether update automatically or manually.....";
+        return "Latest Image Checking....";
     }
     
 }
