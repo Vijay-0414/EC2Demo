@@ -10,7 +10,6 @@ env:
   SERVICE_NAME: demo-service
   TASK_DEF_FAMILY: demo-task
   CONTAINER_NAME: demo-container
-  IMAGE_TAG: latest
   
 jobs:
   deploy:
@@ -94,22 +93,15 @@ jobs:
           echo "EC2 container instances already running."
         fi
 
-    - name: Download Existing Task Definition
-      id: task-def
-      run: |
-        aws ecs describe-task-definition --task-definition $TASK_DEF_FAMILY \
-          --query taskDefinition > ecs-task-def.json
-
     - name: Update task definition with image
       run: |
         IMAGE_URI="${{ secrets.ECR_REPOSITORY }}:${{ env.COMMIT_SHORT_SHA }}"
-        jq --arg IMAGE_URI "$IMAGE_URI" \
-             '.containerDefinitions[0].image = $IMAGE_URI' ecs-task-def.json > new-task-def.json 
+        sed "s|REPLACE_ME|$IMAGE_URI|g" ecs-task-def.json > final-task-def.json
 
     - name: Register ECS task definition
       run: |
         TASK_DEF_ARN=$(aws ecs register-task-definition \
-          --cli-input-json file://new-task-def.json \
+          --cli-input-json file://final-task-def.json \
           --query 'taskDefinition.taskDefinitionArn' \
           --output text)
         if [ -z "$TASK_DEF_ARN" ]; then
