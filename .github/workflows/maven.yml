@@ -136,9 +136,3 @@ jobs:
             --deployment-configuration maximumPercent=200,minimumHealthyPercent=50
         fi
 
-    - name: Update ECS Service to Use New Task Definition
-      run: |
-        NEW_TASK_REVISION=$(aws ecs describe-task-definition --task-definition $TASK_DEF_FAMILY \
-          --query 'taskDefinition.revision' --output text)
-        aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME \
-          --task-definition $TASK_DEF_FAMILY:$NEW_TASK_REVISION
