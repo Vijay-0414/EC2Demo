@@ -8,7 +8,6 @@
     {
       "name": "demo-container",
       "image": "REPLACE_ME",
-      "imagePullPolicy":"Always",
       "portMappings": [
         {
           "containerPort": 8080,
