@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
     @GetMapping
     public String demo(){
-        return "Automation Updated Successfully..........";
+        return "Deploying Application using ECS with EC2 launch type and ECR";
     }
     
 }
