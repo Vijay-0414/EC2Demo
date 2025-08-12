@@ -140,5 +140,5 @@ jobs:
       run: |
         NEW_TASK_REVISION=$(aws ecs describe-task-definition --task-definition $TASK_DEF_FAMILY \
           --query 'taskDefinition.revision' --output text)
-        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE \
+        aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME \
           --task-definition $TASK_DEF_FAMILY:$NEW_TASK_REVISION
