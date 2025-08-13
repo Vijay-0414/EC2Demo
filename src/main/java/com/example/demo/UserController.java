@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
     @GetMapping
     public String demo(){
-        return "First time Deploying";
+        return "Second time Deploying";
     }
     
 }
