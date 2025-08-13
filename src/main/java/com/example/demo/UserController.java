@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
     @GetMapping
     public String demo(){
-        return "NEW Container Removing Process.....";
+        return "Docker Image Checking";
     }
     
 }
