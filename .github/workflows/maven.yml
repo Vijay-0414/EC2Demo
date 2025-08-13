@@ -182,3 +182,16 @@ jobs:
             --deployment-configuration maximumPercent=200,minimumHealthyPercent=50
         fi
 
+    - name: Cleanup old containers and images on ECS EC2
+      run: |
+        echo "Running cleanup task in ECS..."
+        aws ecs run-task \
+          --cluster $CLUSTER_NAME \
+          --launch-type EC2 \
+          --task-definition $TASK_DEF_FAMILY \
+          --overrides '{
+            "containerOverrides": [{
+              "name": "'$CONTAINER_NAME'",
+              "command": ["/bin/sh", "-c", "docker container prune -f && docker image prune -af"]
+            }]
+          }'
