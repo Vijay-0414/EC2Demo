@@ -91,8 +91,6 @@ jobs:
             --subnet-id subnet-02cad20bf83afac11 \
             --user-data "#!/bin/bash
             echo ECS_CLUSTER=$CLUSTER_NAME >> /etc/ecs/ecs.config"
-            docker container prune -f
-            docker image prune -af
         else
           echo "EC2 container instances already running."
         fi
