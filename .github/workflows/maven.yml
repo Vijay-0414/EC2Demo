@@ -95,31 +95,6 @@ jobs:
           echo "EC2 container instances already running."
         fi
 
-    - name: Stop existing ECS tasks (only if service exists)
-      run: |
-        SERVICE_STATUS=$(aws ecs describe-services \
-          --cluster $CLUSTER_NAME \
-          --services $SERVICE_NAME \
-          --query "services[0].status" \
-          --output text 2>/dev/null || echo "MISSING")
-
-        if [ "$SERVICE_STATUS" == "ACTIVE" ]; then
-          echo "Service exists. Checking for running tasks..."
-          TASK_ARN=$(aws ecs list-tasks \
-            --cluster $CLUSTER_NAME \
-            --service-name $SERVICE_NAME \
-            --query 'taskArns[0]' \
-            --output text)
-
-          if [ "$TASK_ARN" != "None" ] && [ "$TASK_ARN" != "null" ]; then
-            echo "Stopping task: $TASK_ARN"
-            aws ecs stop-task --cluster $CLUSTER_NAME --task $TASK_ARN
-          else
-            echo "No running tasks found for service."
-          fi
-        else
-          echo "Service '$SERVICE_NAME' does not exist yet. Skipping stop tasks step."
-        fi
         
     - name: Update task definition with image
       run: |
@@ -153,6 +128,33 @@ jobs:
           echo "Deregistering $TD_ARN"
           aws ecs deregister-task-definition --task-definition $TD_ARN
         done
+
+
+    - name: Stop existing ECS tasks (only if service exists)
+      run: |
+        SERVICE_STATUS=$(aws ecs describe-services \
+          --cluster $CLUSTER_NAME \
+          --services $SERVICE_NAME \
+          --query "services[0].status" \
+          --output text 2>/dev/null || echo "MISSING")
+
+        if [ "$SERVICE_STATUS" == "ACTIVE" ]; then
+          echo "Service exists. Checking for running tasks..."
+          TASK_ARN=$(aws ecs list-tasks \
+            --cluster $CLUSTER_NAME \
+            --service-name $SERVICE_NAME \
+            --query 'taskArns[0]' \
+            --output text)
+
+          if [ "$TASK_ARN" != "None" ] && [ "$TASK_ARN" != "null" ]; then
+            echo "Stopping task: $TASK_ARN"
+            aws ecs stop-task --cluster $CLUSTER_NAME --task $TASK_ARN
+          else
+            echo "No running tasks found for service."
+          fi
+        else
+          echo "Service '$SERVICE_NAME' does not exist yet. Skipping stop tasks step."
+        fi
         
     - name: Create or update ECS service
       run: |
