@@ -125,7 +125,7 @@ jobs:
             --output text --region ${{ secrets.AWS_REGION }})
 
         PUBLIC_IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query "Reservations[0].Instances[0].PublicIpAddress" --output text --region ${{ secrets.AWS_REGION }})
-
+        echo "$PUBLIC_IP"
         echo "${{ secrets.EC2_KEY }}" > my-key.pem
         chmod 600 my-key.pem
     
