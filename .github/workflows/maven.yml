@@ -11,7 +11,6 @@ env:
   TASK_DEF_FAMILY: demo-task
   CONTAINER_NAME: demo-container
   REPO_NAME: demo-ecr
-  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}/$REPO_NAME
   IMAGE_TAG: latest
   
 jobs:
@@ -49,6 +48,9 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Set ECR_REPOSITORY variable
+      run: echo "ECR_REPOSITORY=${{ secrets.ECR_REPOSITORY }}/$REPO_NAME" >> $GITHUB_ENV
 
     - name: Check and create ECR repository if not exists
       run: |
