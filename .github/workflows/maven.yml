@@ -126,6 +126,9 @@ jobs:
 
         PUBLIC_IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query "Reservations[0].Instances[0].PublicIpAddress" --output text --region ${{ secrets.AWS_REGION }})
 
+        echo "${{ secrets.EC2_KEY }}" > my-key.pem
+        chmod 600 my-key.pem
+    
         ssh -o StrictHostKeyChecking=no -i my-key.pem ec2-user@$PUBLIC_IP << 'EOF'
           echo "Removing stopped containers..."
           docker container prune -f
