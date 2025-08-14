@@ -10,6 +10,8 @@ env:
   SERVICE_NAME: demo-service
   TASK_DEF_FAMILY: demo-task
   CONTAINER_NAME: demo-container
+  REPO_NAME: demo-ecr
+  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}/$REPO_NAME
   IMAGE_TAG: latest
   
 jobs:
@@ -48,14 +50,28 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }}
 
+    - name: Check and create ECR repository if not exists
+      run: |
+        if ! aws ecr describe-repositories --repository-names $REPO_NAME --region ${{ secrets.AWS_REGION }} >/dev/null 2>&1; then
+          echo "Repository not found. Creating..."
+          aws ecr create-repository \
+            --repository-name $REPO_NAME \
+            --region ${{ secrets.AWS_REGION }} \
+            --image-scanning-configuration scanOnPush=true \
+            --encryption-configuration encryptionType=AES256
+          echo "Repository '$REPO_NAME' created."
+        else
+          echo "Repository '$REPO_NAME' already exists."
+        fi
+
     - name: Login to Amazon ECR
       id: login-ecr
       run: |
-        aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REPOSITORY }}
+        aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin $ECR_REPOSITORY
 
     - name: Build, tag, and push Docker image to ECR
       run: |
-        IMAGE_URI="${{ secrets.ECR_REPOSITORY }}"
+        IMAGE_URI="$ECR_REPOSITORY"
         docker build -t $IMAGE_URI:${{ env.COMMIT_SHORT_SHA }} -t $IMAGE_URI:$IMAGE_TAG .
         docker push $IMAGE_URI:${{ env.COMMIT_SHORT_SHA }}
         docker push $IMAGE_URI:$IMAGE_TAG
