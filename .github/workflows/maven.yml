@@ -182,3 +182,5 @@ jobs:
             --deployment-configuration maximumPercent=200,minimumHealthyPercent=50
         fi
 
+    - name: Remove stopped container
+      run: docker container prune -f
