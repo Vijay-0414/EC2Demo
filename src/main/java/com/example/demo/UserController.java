@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
     @GetMapping
     public String demo(){
-        return "6th Time Checking";
+        return "7th Time Checking";
     }
     
 }
