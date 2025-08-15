@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
     @GetMapping
     public String demo(){
-        return "Fresh New Deployment";
+        return "Fresh New Second Deployment";
     }
     
 }
