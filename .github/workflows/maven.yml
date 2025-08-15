@@ -56,11 +56,7 @@ jobs:
       run: |
         if ! aws ecr describe-repositories --repository-names $REPO_NAME --region ${{ secrets.AWS_REGION }} >/dev/null 2>&1; then
           echo "Repository not found. Creating..."
-          aws ecr create-repository \
-            --repository-name $REPO_NAME \
-            --region ${{ secrets.AWS_REGION }} \
-            --image-scanning-configuration scanOnPush=true \
-            --encryption-configuration encryptionType=AES256
+          aws ecr create-repository --repository-name $REPO_NAME --region ${{ secrets.AWS_REGION }} --image-scanning-configuration scanOnPush=true --encryption-configuration encryptionType=AES256
           echo "Repository '$REPO_NAME' created."
         else
           echo "Repository '$REPO_NAME' already exists."
@@ -92,13 +88,10 @@ jobs:
 
     - name: Launch EC2 instances if none exist
       run: |
-        COUNT=$(aws ecs list-container-instances --cluster $CLUSTER_NAME \
-          --query "length(containerInstanceArns)" --output text)
+        COUNT=$(aws ecs list-container-instances --cluster $CLUSTER_NAME --query "length(containerInstanceArns)" --output text)
         if [ "$COUNT" -eq 0 ]; then
           echo "Launching EC2 container instance..."
-          AMI_ID=$(aws ssm get-parameters \
-            --names /aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id \
-            --query "Parameters[0].Value" --output text)
+          AMI_ID=$(aws ssm get-parameters --names /aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id --query "Parameters[0].Value" --output text)
           aws ec2 run-instances \
             --image-id $AMI_ID \
             --count 1 \
@@ -115,12 +108,12 @@ jobs:
 
     - name: Cleanup old containers in EC2
       run: |
-        INSTANCE_ID=$(aws ecs list-container-instances \
-          --cluster $CLUSTER_NAME \
-          --query "containerInstanceArns[0]" \
-          --output text --region ${{ secrets.AWS_REGION }} | xargs -I {} aws ecs describe-container-instances \
+        CONTAINER_INSTANCE_ARN=$(aws ecs list-container-instances --cluster $CLUSTER_NAME --query "containerInstanceArns[0]" --output text --region ${{ secrets.AWS_REGION }})
+
+        if [ "$CONTAINER_INSTANCE_ARN" != "None" ] && [ -n "$CONTAINER_INSTANCE_ARN" ]; then
+          INSTANCE_ID=$(aws ecs describe-container-instances \
             --cluster $CLUSTER_NAME \
-            --container-instances {} \
+            --container-instances $CONTAINER_INSTANCE_ARN \
             --query "containerInstances[0].ec2InstanceId" \
             --output text --region ${{ secrets.AWS_REGION }})
 
@@ -128,15 +121,16 @@ jobs:
 
         echo "${{ secrets.EC2_KEY }}" > my-key.pem
         chmod 600 my-key.pem
-    
+
         ssh -o StrictHostKeyChecking=no -i my-key.pem ec2-user@$PUBLIC_IP << 'EOF'
-          echo "Removing stopped containers..."
           docker container prune -f
-          echo "Removing unused images now..."
           docker image prune -af
-          echo "Removing unused volumes..."
           docker volume prune -f
         EOF
+        else
+          echo "No ECS container instances found in cluster $CLUSTER_NAME. Skipping cleanup."
+        fi
+
         
     - name: Update task definition with image
       run: |
@@ -145,10 +139,7 @@ jobs:
         
     - name: Register ECS task definition
       run: |
-        TASK_DEF_ARN=$(aws ecs register-task-definition \
-          --cli-input-json file://final-task-def.json \
-          --query 'taskDefinition.taskDefinitionArn' \
-          --output text)
+        TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://final-task-def.json --query 'taskDefinition.taskDefinitionArn' --output text)
         if [ -z "$TASK_DEF_ARN" ]; then
           echo "Task definition registration failed."
           exit 1
@@ -159,12 +150,7 @@ jobs:
     - name: Deregister old task definitions
       run: |
         FAMILY="${TASK_DEF_FAMILY}"
-        OLD_REVISIONS=$(aws ecs list-task-definitions \
-          --family-prefix $FAMILY \
-          --status ACTIVE \
-          --sort DESC \
-          --query 'taskDefinitionArns[1:]' \
-          --output text)
+        OLD_REVISIONS=$(aws ecs list-task-definitions --family-prefix $FAMILY --status ACTIVE --sort DESC --query 'taskDefinitionArns[1:]' --output text)
 
         for TD_ARN in $OLD_REVISIONS; do
           echo "Deregistering $TD_ARN"
