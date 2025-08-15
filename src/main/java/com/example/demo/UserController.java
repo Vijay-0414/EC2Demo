@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
     @GetMapping
     public String demo(){
-        return "Friday First Time Checking...";
+        return "Friday Second Time Checking...";
     }
     
 }
