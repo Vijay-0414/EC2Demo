@@ -100,6 +100,7 @@ jobs:
             --key-name my-key \
             --security-group-ids sg-0abb4251606ddb157 \
             --subnet-id subnet-02cad20bf83afac11 \
+            --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=EC2-Demo-Instance}]" \
             --user-data "#!/bin/bash
             echo ECS_CLUSTER=$CLUSTER_NAME >> /etc/ecs/ecs.config"
         else
